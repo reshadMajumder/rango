@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from .router import Router
 
 class RangoApp(FastAPI):
-    """Main Rango app wrapper for JetFramework-style structure."""
+    """Main Rango app wrapper ."""
     def __init__(self, debug: bool = False):
         super().__init__(debug=debug)
         self.router_obj = Router()
