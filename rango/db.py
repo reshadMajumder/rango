@@ -10,12 +10,18 @@ sys.path.insert(0, str(project_root))
 
 async def init_db():
     """Initialize database with project settings."""
+    # Get current working directory to determine project name
+    current_dir = Path.cwd()
+    project_name = current_dir.name
+    
     try:
-        # Try to import project settings
-        from myproject.project.settings import TORTOISE_ORM
-        config = TORTOISE_ORM
+        # Try to import project settings dynamically
+        project_settings_module = f"{project_name}.project.settings"
+        import importlib
+        settings_module = importlib.import_module(project_settings_module)
+        config = settings_module.TORTOISE_ORM
         print(f"Using project settings: {config}")
-    except ImportError as e:
+    except (ImportError, AttributeError) as e:
         print(f"Could not import project settings: {e}")
         # Fallback to rango settings
         from rango.settings import TORTOISE_ORM
