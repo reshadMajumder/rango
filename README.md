@@ -80,6 +80,122 @@ rango migrate
 rango runserver
 ```
 
+## Tutorial
+
+### Create models with ForeignKey
+
+```python
+from tortoise import fields, models
+
+class Category(models.Model):
+    id = fields.IntField(pk=True)
+    name = fields.CharField(max_length=100)
+
+class Product(models.Model):
+    id = fields.IntField(pk=True)
+    title = fields.CharField(max_length=255)
+    category = fields.ForeignKeyField('models.Category', related_name='products')
+```
+
+### Serializers (nested FK supported)
+
+```python
+from rango_api.serializers import ModelSerializer
+from .models import Category, Product
+
+class CategorySerializer(ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ["id", "name"]
+
+class ProductSerializer(ModelSerializer):
+    class Meta:
+        model = Product
+        fields = ["id", "title", "category"]  # can send category or category_id
+        nested_serializers = {
+            'Category': CategorySerializer
+        }
+```
+
+### Views (generic, with FK optimization)
+
+```python
+from rango_api.generics import ListCreateView, RetrieveUpdateDeleteView
+from .models import Product
+from .serializers import ProductSerializer
+
+class ProductListCreateView(ListCreateView):
+    model = Product
+    serializer_class = ProductSerializer
+    select_related = ['category']  # optimize FK
+
+class ProductDetailView(RetrieveUpdateDeleteView):
+    model = Product
+    serializer_class = ProductSerializer
+    select_related = ['category']
+```
+
+### URLs
+
+```python
+from rango_api.router import Router
+from .views import ProductListCreateView, ProductDetailView
+
+router = Router()
+router.add("/products", ProductListCreateView, methods=["GET", "POST"])
+router.add("/products/{id}", ProductDetailView, methods=["GET", "PUT", "PATCH", "DELETE"])
+```
+
+### Test the API
+
+- Create category:
+```bash
+curl -X POST http://127.0.0.1:8000/categories \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Electronics"}'
+```
+
+- Create product (supports category or category_id):
+```bash
+curl -X POST http://127.0.0.1:8000/products \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Phone","category":1}'
+```
+
+## Extensibility (DRF-like Hooks)
+
+You can override hooks in generic views to customize behavior:
+
+```python
+class ProductListCreateView(ListCreateView):
+    model = Product
+    serializer_class = ProductSerializer
+
+    def get_queryset(self, request):
+        return self.model.all().select_related('category')
+
+    async def before_create(self, request, data: dict) -> dict:
+        # mutate/validate incoming data
+        data.setdefault("title", data.get("title", "Untitled"))
+        return data
+
+    async def after_create(self, request, obj):
+        # side-effects, logging, etc.
+        return obj
+
+class ProductDetailView(RetrieveUpdateDeleteView):
+    model = Product
+    serializer_class = ProductSerializer
+
+    async def before_update(self, request, obj, data: dict) -> dict:
+        # e.g. normalize FK input
+        if 'category' in data and 'category_id' not in data:
+            data['category_id'] = data.pop('category')
+        return data
+```
+
+Available hooks include: `get_queryset`, `filter_queryset`, `before_create`, `perform_create`, `after_create`, `before_update`, `perform_update`, `after_update`, `before_delete`, `perform_delete`, `after_delete`.
+
 ## Project Structure
 
 ```
