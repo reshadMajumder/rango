@@ -3,11 +3,11 @@
 Rango Framework CLI
 -----------------------------------
 Usage:
-    python manage.py startproject myproject
-    python manage.py startapp blog
-    python manage.py makemigrations
-    python manage.py migrate
-    python manage.py runserver
+    rango startproject myproject
+    rango startapp blog
+    rango makemigrations
+    rango migrate
+    rango runserver
 """
 import typer
 import os
@@ -16,7 +16,6 @@ import shutil
 from pathlib import Path
 
 cli = typer.Typer(help="Rango Framework management CLI")
-PROJECT_ROOT = Path(__file__).resolve().parent
 
 def _update_project_settings(project_path: Path, app_name: str):
     """Update project settings to include the new app."""
@@ -84,7 +83,7 @@ def _update_project_urls(project_path: Path, app_name: str):
 # ----------------------------
 @cli.command()
 def startproject(name: str):
-    project_dir = PROJECT_ROOT / name
+    project_dir = Path.cwd() / name
     if project_dir.exists():
         typer.echo(f"❌ Project '{name}' exists")
         raise typer.Exit(code=1)
@@ -144,8 +143,13 @@ def startproject(name: str):
         "    uvicorn.run(\"project.asgi:app\", host='127.0.0.1', port=8000, reload=True)\n"
     )
     
-    # Copy manage.py to the project directory
-    shutil.copy2(PROJECT_ROOT / "manage.py", project_dir / "manage.py")
+    # Create a simple manage.py for the project
+    (project_dir / "manage.py").write_text(
+        "#!/usr/bin/env python3\n"
+        "from rango_api.cli import cli\n\n"
+        "if __name__ == \"__main__\":\n"
+        "    cli()\n"
+    )
     
     typer.echo(f"✅ Project '{name}' created!")
 
@@ -228,6 +232,10 @@ def migrate():
 def runserver(host: str = "127.0.0.1", port: int = 8000):
     typer.echo(f"🚀 Running server at http://{host}:{port}")
     subprocess.run(["uvicorn", "project.asgi:app", "--host", host, "--port", str(port), "--reload"])
+
+def main():
+    """Entry point for the CLI."""
+    cli()
 
 if __name__ == "__main__":
     cli()
