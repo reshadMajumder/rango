@@ -63,18 +63,7 @@ Every time you create or modify models:
  aerich migrate --name "your_message" → aerich upgrade
 
 
-
-
-
-
-### 3. Run migrations
-
-```bash
-rango makemigrations
-rango migrate
-```
-
-### 4. Start the development server
+### 3. Start the development server
 
 ```bash
 rango runserver
