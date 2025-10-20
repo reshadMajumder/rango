@@ -49,7 +49,7 @@ setup(
     description="A modern Python web framework built on FastAPI with Django-like features and folder structure",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/reshadMajumder/rango-api",
+    url="https://github.com/reshadMajumder/rango",
     packages=find_packages(),
     classifiers=[
         "Development Status :: 3 - Alpha",

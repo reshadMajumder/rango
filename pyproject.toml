@@ -8,7 +8,7 @@ version = "0.1.0"
 authors = [
     {name = "Jahidul Hassan Reshad", email = "hassanjahidul365@gmail.com"},
 ]
-description = "A modern Python web framework built on FastAPI with Django-like features"
+description = "A modern Python web framework built on FastAPI with Django-like features and structure"
 readme = "README.md"
 license = {file = "LICENSE"}
 requires-python = ">=3.8"
