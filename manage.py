@@ -86,7 +86,7 @@ def _update_project_urls(project_path: Path, app_name: str):
 def startproject(name: str):
     project_dir = PROJECT_ROOT / name
     if project_dir.exists():
-        typer.echo(f"❌ Project '{name}' exists")
+        typer.echo(f"Project '{name}' exists")
         raise typer.Exit(code=1)
     os.makedirs(project_dir / "apps", exist_ok=True)
     os.makedirs(project_dir / "project", exist_ok=True)
@@ -114,7 +114,7 @@ def startproject(name: str):
     # views.py
     (project_dir / "project" / "views.py").write_text(
         "from rango_api.generics import ListCreateView\n"
-        "from fastapi.responses import JSONResponse\n\n"
+        "from starlette.responses import JSONResponse\n\n"
         "class HomeView:\n"
         "    async def get(self, request):\n"
         "        return JSONResponse({\"message\": \"Welcome to Rango Framework!\"})\n"
@@ -129,12 +129,7 @@ def startproject(name: str):
         "from project.urls import router\n\n"
         "app = RangoApp(debug=True)\n"
         "app.add_middleware(SimpleCORSMiddleware)\n"
-        "app.include_router(router)\n\n"
-        "# Add startup event handler for database initialization\n"
-        "@app.on_event(\"startup\")\n"
-        "async def startup_event():\n"
-        "    from rango_api.db import init_db\n"
-        "    await init_db()\n"
+        "app.include_router(router)\n"
     )
     # main.py
     (project_dir / "main.py").write_text(
@@ -147,7 +142,7 @@ def startproject(name: str):
     # Copy manage.py to the project directory
     shutil.copy2(PROJECT_ROOT / "manage.py", project_dir / "manage.py")
     
-    typer.echo(f"✅ Project '{name}' created!")
+    typer.echo(f"Project '{name}' created!")
 
 # ----------------------------
 # STARTAPP
@@ -158,67 +153,99 @@ def startapp(name: str):
     apps_dir = project_path / "apps"
     app_dir = apps_dir / name
     if not (project_path / "project" / "settings.py").exists():
-        typer.echo("❌ Not in a Rango project")
+        typer.echo("Not in a Rango project")
         raise typer.Exit(code=1)
     os.makedirs(app_dir, exist_ok=True)
     (app_dir / "__init__.py").write_text("")
     (app_dir / "models.py").write_text(
         "from tortoise import fields, models\n\n\n"
+        "class Category(models.Model):\n"
+        "    id = fields.IntField(pk=True)\n"
+        "    name = fields.CharField(max_length=100, unique=True)\n"
+        "    description = fields.TextField(null=True)\n"
+        "    created_at = fields.DatetimeField(auto_now_add=True)\n\n"
+        "    def __str__(self):\n"
+        "        return self.name\n"
+        "    \n"
+        "    class Meta:\n"
+        "        table = 'categories'\n\n\n"
         "class Example(models.Model):\n"
         "    id = fields.IntField(pk=True)\n"
         "    title = fields.CharField(max_length=255)\n"
         "    description = fields.TextField(null=True)\n"
-        "    created_at = fields.DatetimeField(auto_now_add=True)\n\n"
+        "    category = fields.ForeignKeyField('models.Category', related_name='examples')\n"
+        "    is_active = fields.BooleanField(default=True)\n"
+        "    created_at = fields.DatetimeField(auto_now_add=True)\n"
+        "    updated_at = fields.DatetimeField(auto_now=True)\n\n"
         "    def __str__(self):\n"
         "        return self.title\n"
+        "    \n"
+        "    class Meta:\n"
+        "        table = 'examples'\n"
     )
     (app_dir / "serializers.py").write_text(
         "from rango_api.serializers import ModelSerializer\n"
-        "from .models import Example\n\n"
+        "from .models import Example, Category\n\n"
+        "class CategorySerializer(ModelSerializer):\n"
+        "    class Meta:\n"
+        "        model = Category\n"
+        "        fields = [\"id\", \"name\", \"description\", \"created_at\"]\n\n"
         "class ExampleSerializer(ModelSerializer):\n"
         "    class Meta:\n"
         "        model = Example\n"
-        "        fields = [\"id\", \"title\", \"description\", \"created_at\"]\n"
+        "        fields = [\"id\", \"title\", \"description\", \"category\", \"is_active\", \"created_at\", \"updated_at\"]\n"
+        "        nested_serializers = {\n"
+        "            'Category': CategorySerializer\n"
+        "        }\n"
     )
     (app_dir / "views.py").write_text(
         "from rango_api.generics import ListCreateView, RetrieveUpdateDeleteView\n"
-        "from .models import Example\n"
-        "from .serializers import ExampleSerializer\n\n"
+        "from .models import Example, Category\n"
+        "from .serializers import ExampleSerializer, CategorySerializer\n\n"
+        "class CategoryListCreateView(ListCreateView):\n"
+        "    model = Category\n"
+        "    serializer_class = CategorySerializer\n\n"
+        "class CategoryDetailView(RetrieveUpdateDeleteView):\n"
+        "    model = Category\n"
+        "    serializer_class = CategorySerializer\n\n"
         "class ExampleListCreateView(ListCreateView):\n"
         "    model = Example\n"
-        "    serializer_class = ExampleSerializer\n\n"
-        
-        "    \n\n"
+        "    serializer_class = ExampleSerializer\n"
+        "    select_related = ['category']  # Optimize foreign key queries\n\n"
         "class ExampleDetailView(RetrieveUpdateDeleteView):\n"
         "    model = Example\n"
-        "    serializer_class = ExampleSerializer\n\n"
-        "    \n"
+        "    serializer_class = ExampleSerializer\n"
+        "    select_related = ['category']  # Optimize foreign key queries\n"
     )
     (app_dir / "urls.py").write_text(
         "from rango_api.router import Router\n"
-        "from .views import ExampleListCreateView, ExampleDetailView\n\n"
+        "from .views import ExampleListCreateView, ExampleDetailView, CategoryListCreateView, CategoryDetailView\n\n"
         "router = Router()\n"
-        "router.add(\"/example\", ExampleListCreateView, methods=[\"GET\", \"POST\"])\n"
-        "router.add(\"/example/{id}\", ExampleDetailView, methods=[\"GET\", \"PUT\", \"DELETE\"])\n"
+        "# Category endpoints\n"
+        "router.add(\"/categories\", CategoryListCreateView, methods=[\"GET\", \"POST\"])\n"
+        "router.add(\"/categories/{id}\", CategoryDetailView, methods=[\"GET\", \"PUT\", \"PATCH\", \"DELETE\"])\n"
+        "# Example endpoints\n"
+        "router.add(\"/examples\", ExampleListCreateView, methods=[\"GET\", \"POST\"])\n"
+        "router.add(\"/examples/{id}\", ExampleDetailView, methods=[\"GET\", \"PUT\", \"PATCH\", \"DELETE\"])\n"
     )
     
     # Update project settings to include the new app
     _update_project_settings(project_path, name)
     _update_project_urls(project_path, name)
     
-    typer.echo(f"✅ App '{name}' created and configured!")
+    typer.echo(f"App '{name}' created and configured!")
 
 # ----------------------------
 # DB COMMANDS
 # ----------------------------
 @cli.command()
 def makemigrations(message: str = "auto"):
-    typer.echo("📦 Making migrations...")
+    typer.echo("Making migrations...")
     subprocess.run(["aerich", "migrate", "--name", message], check=False)
 
 @cli.command()
 def migrate():
-    typer.echo("⚙️ Applying migrations...")
+    typer.echo("Applying migrations...")
     subprocess.run(["aerich", "upgrade"], check=False)
 
 # ----------------------------
@@ -226,7 +253,7 @@ def migrate():
 # ----------------------------
 @cli.command()
 def runserver(host: str = "127.0.0.1", port: int = 8000):
-    typer.echo(f"🚀 Running server at http://{host}:{port}")
+    typer.echo(f"Running server at http://{host}:{port}")
     subprocess.run(["uvicorn", "project.asgi:app", "--host", host, "--port", str(port), "--reload"])
 
 if __name__ == "__main__":

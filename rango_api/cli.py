@@ -113,7 +113,7 @@ def startproject(name: str):
     # views.py
     (project_dir / "project" / "views.py").write_text(
         "from rango_api.generics import ListCreateView\n"
-        "from fastapi.responses import JSONResponse\n\n"
+        "from starlette.responses import JSONResponse\n\n"
         "class HomeView:\n"
         "    async def get(self, request):\n"
         "        return JSONResponse({\"message\": \"Welcome to Rango Framework!\"})\n"
@@ -128,12 +128,7 @@ def startproject(name: str):
         "from project.urls import router\n\n"
         "app = RangoApp(debug=True)\n"
         "app.add_middleware(SimpleCORSMiddleware)\n"
-        "app.include_router(router)\n\n"
-        "# Add startup event handler for database initialization\n"
-        "@app.on_event(\"startup\")\n"
-        "async def startup_event():\n"
-        "    from rango_api.db import init_db\n"
-        "    await init_db()\n"
+        "app.include_router(router)\n"
     )
     # main.py
     (project_dir / "main.py").write_text(

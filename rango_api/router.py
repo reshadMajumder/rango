@@ -1,12 +1,13 @@
 # rango/router.py
-from fastapi import APIRouter, Request
-from typing import Any, Dict
+from starlette.routing import Route, Mount
+from starlette.requests import Request
+from typing import Any, Dict, List
 import inspect
 
 class Router:
     """Simple router wrapper for Rango framework."""
     def __init__(self):
-        self.router = APIRouter()
+        self.routes: List[Route] = []
 
     def add(self, path: str, view_class, methods=None):
         """
@@ -23,7 +24,7 @@ class Router:
             view_method = getattr(view_instance, method_upper.lower())
 
             # Create a handler that can accept path parameters
-            async def handler(_method=method_upper, _view_method=view_method, _view_instance=view_instance, request: Request = None):
+            async def handler(request: Request, _method=method_upper, _view_method=view_method, _view_instance=view_instance):
                 # Get the method signature to see what parameters it expects
                 sig = inspect.signature(_view_method)
                 params = list(sig.parameters.keys())
@@ -48,18 +49,20 @@ class Router:
                     # If the method doesn't expect request, call it without parameters
                     return await _view_method()
 
-            # Register the route with FastAPI
-            self.router.add_api_route(path, handler, methods=[method_upper])
+            # Register the route with Starlette
+            route = Route(path, handler, methods=[method_upper])
+            self.routes.append(route)
             # Also register with trailing slash to avoid 404s
             if not path.endswith("/"):
-                self.router.add_api_route(path + "/", handler, methods=[method_upper])
+                route_with_slash = Route(path + "/", handler, methods=[method_upper])
+                self.routes.append(route_with_slash)
 
     def include(self, router):
         """
         Include another router.
-        Accepts either a Router instance or raw APIRouter.
+        Accepts either a Router instance or raw Starlette routes.
         """
-        if hasattr(router, "router"):  # another Router instance
-            self.router.include_router(router.router)
-        else:  # raw APIRouter
-            self.router.include_router(router)
+        if hasattr(router, "routes"):  # another Router instance
+            self.routes.extend(router.routes)
+        else:  # raw Starlette routes
+            self.routes.extend(router)

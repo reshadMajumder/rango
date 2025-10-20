@@ -1,7 +1,7 @@
 
 #rango.generics.py
-from fastapi import HTTPException, Query
-from fastapi.responses import JSONResponse
+from starlette.responses import JSONResponse
+from starlette.exceptions import HTTPException
 from .serializers import ModelSerializer
 from tortoise import fields
 from typing import Any
