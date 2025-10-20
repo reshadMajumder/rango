@@ -94,7 +94,10 @@ class ListCreateView:
 
     async def post(self, request):
         """Create a new object with foreign key validation."""
-        data = await request.json()
+        try:
+            data = await request.json()
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid JSON payload")
         
         # Hooks + validation
         data = await self.before_create(request, data)
@@ -110,7 +113,8 @@ class ListCreateView:
             obj_with_relations = await self._get_object_with_relations(obj.id)
             return JSONResponse(self.serializer_class(obj_with_relations).data, status_code=201)
         
-        raise HTTPException(status_code=400, detail=serializer.errors)
+        # Return JSON error payload for validation errors
+        return JSONResponse({"errors": serializer.errors}, status_code=400)
 
     async def _apply_search(self, query, search_term: str):
         """Apply search functionality to the query."""
@@ -247,7 +251,10 @@ class RetrieveUpdateDeleteView:
         if not obj:
             raise HTTPException(status_code=404, detail="Not found")
         
-        data = await request.json()
+        try:
+            data = await request.json()
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid JSON payload")
         # Hooks + validation
         data = await self.before_update(request, obj, data)
         await self._validate_foreign_keys(data)
@@ -262,7 +269,8 @@ class RetrieveUpdateDeleteView:
             obj_with_relations = await self._get_object_with_relations(obj.id)
             return JSONResponse(self.serializer_class(obj_with_relations).data)
         
-        raise HTTPException(status_code=400, detail=serializer.errors)
+        # Return JSON error payload for validation errors
+        return JSONResponse({"errors": serializer.errors}, status_code=400)
 
     async def patch(self, request, id: int):
         """Partial update of an object."""
@@ -270,7 +278,10 @@ class RetrieveUpdateDeleteView:
         if not obj:
             raise HTTPException(status_code=404, detail="Not found")
         
-        data = await request.json()
+        try:
+            data = await request.json()
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid JSON payload")
         # Hooks + validation
         data = await self.before_update(request, obj, data)
         await self._validate_foreign_keys(data)
@@ -284,7 +295,8 @@ class RetrieveUpdateDeleteView:
             obj_with_relations = await self._get_object_with_relations(obj.id)
             return JSONResponse(self.serializer_class(obj_with_relations).data)
         
-        raise HTTPException(status_code=400, detail=serializer.errors)
+        # Return JSON error payload for validation errors
+        return JSONResponse({"errors": serializer.errors}, status_code=400)
 
     async def delete(self, request, id: int):
         """Delete an object."""

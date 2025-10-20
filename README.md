@@ -1,73 +1,103 @@
 # Rango API Framework
 
-A modern Python web framework built on FastAPI with Django-like features for rapid API development.
+A modern Python web framework built on Starlette with Django-like features for rapid API development.
 
 ## Features
 
-- **FastAPI Integration**: Built on top of FastAPI for high performance and automatic API documentation
+- **Starlette Integration**: Built on top of Starlette for high performance and ASGI compatibility
 - **Django-like Structure**: Familiar project and app structure similar to Django
-- **ORM Integration**: Built-in Tortoise ORM support with migrations
+- **ORM Integration**: Built-in Tortoise ORM support with Aerich migrations
 - **Generic Views**: Pre-built views for common CRUD operations
 - **Serializers**: Django REST Framework-like serializers
 - **CLI Tools**: Command-line interface for project management
 - **CORS Middleware**: Built-in CORS support
+- **Manual Database Management**: Safe, Django-like database migration workflow
 
 ## Installation
 
+### Option 1: Install globally (recommended for CLI usage)
 ```bash
 pip install rango-api
 ```
 
+### Option 2: Use manage.py (for project-specific usage)
+```bash
+# Clone or download the framework
+# Use python manage.py commands instead of rango commands
+```
+
 ## Quick Start
 
-### 1. Create a new project
+### Option A: Using global CLI (if installed globally)
 
 ```bash
+# 1. Create a new project
 rango startproject myproject
 cd myproject
-```
 
-### 2. Create an app
-
-```bash
+# 2. Create an app
 rango startapp blog
-```
 
+# 3. Initialize database
+rango initdb
 
-
-
-
-
-### Initialize database
-Init Aerich config
-
-```bash
-
-aerich init -t project.settings.TORTOISE_ORM
-```
-Create database & initial migration
-
-```bash
-
-aerich init-db
-```
-Make migrations after changing models
-
-```bash
-
-aerich migrate --name "initial"
-aerich upgrade
-```
-
-Every time you create or modify models:
- aerich migrate --name "your_message" → aerich upgrade
-
-
-### 3. Start the development server
-
-```bash
+# 4. Start server
 rango runserver
 ```
+
+### Option B: Using manage.py (project-specific)
+
+```bash
+# 1. Create a new project
+python manage.py startproject myproject
+cd myproject
+
+# 2. Create an app
+python manage.py startapp blog
+
+# 3. Initialize database
+python manage.py initdb
+
+# 4. Start server
+python manage.py runserver
+```
+
+## Database Management
+
+Rango Framework uses Tortoise ORM with Aerich for database migrations, providing a Django-like experience.
+
+### Initial Setup (First Time Only)
+
+```bash
+# After creating a project and app
+python manage.py initdb
+```
+
+### Development Workflow
+
+```bash
+# 1. Modify models in your app
+# ... edit models.py ...
+
+# 2. Create migrations
+python manage.py makemigrations "description of changes"
+
+# 3. Apply migrations
+python manage.py migrate
+
+# 4. Check status (optional)
+python manage.py migrate_status
+```
+
+### Production Safety
+
+- **No automatic migrations**: Database schema changes must be explicitly applied
+- **Manual migration control**: You control when and how migrations are applied
+- **Automatic DB connection**: Database connection is initialized on first request
+- **Migration tracking**: Aerich tracks applied migrations
+- **Rollback support**: Aerich supports migration rollbacks
+
+For detailed database management guide, see [DATABASE_GUIDE.md](DATABASE_GUIDE.md).
 
 ## Tutorial
 
@@ -258,17 +288,32 @@ router.add("/posts/{id}", PostDetailView, methods=["GET", "PUT", "DELETE"])
 
 ## CLI Commands
 
+### Project Management
+- `python manage.py startproject <name>` - Create a new project
+- `python manage.py startapp <name>` - Create a new app
+- `python manage.py runserver [host] [port]` - Start development server
+
+### Database Management
+- `python manage.py initdb` - Initialize database and Aerich config (first time only)
+- `python manage.py makemigrations [message]` - Create database migrations
+- `python manage.py migrate` - Apply database migrations
+- `python manage.py migrate_status` - Show migration status
+
+### Alternative CLI (if installed globally)
 - `rango startproject <name>` - Create a new project
 - `rango startapp <name>` - Create a new app
-- `rango makemigrations [message]` - Create database migrations
-- `rango migrate` - Apply database migrations
+- `rango initdb` - Initialize database
+- `rango makemigrations [message]` - Create migrations
+- `rango migrate` - Apply migrations
+- `rango migrate_status` - Show migration status
 - `rango runserver [host] [port]` - Start development server
 
 ## Requirements
 
 - Python 3.8+
-- FastAPI
+- Starlette
 - Tortoise ORM
+- Aerich (for migrations)
 - Uvicorn
 
 ## License

@@ -50,6 +50,45 @@ class ModelSerializer:
             except Exception as e:
                 self.errors[field_name] = str(e)
         
+        # Enforce required fields for create/update when instance is not provided
+        try:
+            meta_fields = getattr(self.Meta, 'fields', None) if hasattr(self, 'Meta') else None
+            fields_map = getattr(model_class, "_meta").fields_map
+
+            for name, model_field in fields_map.items():
+                # Skip PK, auto fields, m2m
+                if getattr(model_field, 'pk', False):
+                    continue
+                if getattr(model_field, 'auto_now', False) or getattr(model_field, 'auto_now_add', False):
+                    continue
+                if self._is_m2m_field(model_field):
+                    continue
+
+                # Respect Meta.fields if provided
+                if meta_fields and name not in meta_fields and not self._is_fk_field(model_field):
+                    continue
+
+                # Determine the input key name (FK becomes name or name_id)
+                input_key = name
+                alt_fk_key = f"{name}_id"
+
+                # Field is required if null=False and no default provided
+                is_nullable = getattr(model_field, 'null', False)
+                has_default = getattr(model_field, 'default', None) is not None
+                is_required = not is_nullable and not has_default
+
+                if self._is_fk_field(model_field):
+                    provided = (input_key in self.initial_data) or (alt_fk_key in self.initial_data) or (alt_fk_key in self.validated_data)
+                    value = self.initial_data.get(input_key, self.initial_data.get(alt_fk_key, None))
+                    if is_required and (not provided or value is None):
+                        self.errors[input_key] = "This field is required."
+                else:
+                    if is_required and (input_key not in self.initial_data or self.initial_data.get(input_key) is None):
+                        self.errors[input_key] = "This field is required."
+        except Exception:
+            # Do not fail serializer if introspection fails; rely on DB validation
+            pass
+
         return len(self.errors) == 0
 
     # ---- Helpers to detect field kinds without importing internal classes ----

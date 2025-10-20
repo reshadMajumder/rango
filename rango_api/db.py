@@ -9,7 +9,7 @@ project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_root))
 
 async def init_db():
-    """Initialize database with project settings."""
+    """Initialize Tortoise ORM using project settings (no schema generation)."""
     # Get current working directory to determine project name
     current_dir = Path.cwd()
     project_name = current_dir.name
@@ -28,13 +28,12 @@ async def init_db():
         config = TORTOISE_ORM
         print(f"Using rango settings: {config}")
     
-    # Initialize Tortoise ORM
-    print("Initializing Tortoise ORM...")
+    # Initialize Tortoise ORM (connections only)
     await Tortoise.init(config=config)
-    print("Generating database schema...")
-    # Generate database schema
-    await Tortoise.generate_schemas()
-    print("Database schema generated!")
 
 def init_db_sync():
     run_async(init_db)
+
+async def close_db():
+    """Close all Tortoise ORM connections."""
+    await Tortoise.close_connections()

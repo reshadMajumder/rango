@@ -19,7 +19,6 @@ requirements = [
     "click==8.3.0",
     "colorama==0.4.6",
     "dictdiffer==0.9.0",
-    "fastapi==0.119.0",
     "h11==0.16.0",
     "idna==3.10",
     "iso8601==2.1.0",

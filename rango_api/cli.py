@@ -15,7 +15,7 @@ import subprocess
 import shutil
 from pathlib import Path
 
-cli = typer.Typer(help="Rango Framework management CLI")
+cli = typer.Typer(help="Rango Framework management CLI - Django-like commands for Starlette-based apps")
 
 def _update_project_settings(project_path: Path, app_name: str):
     """Update project settings to include the new app."""
@@ -85,7 +85,7 @@ def _update_project_urls(project_path: Path, app_name: str):
 def startproject(name: str):
     project_dir = Path.cwd() / name
     if project_dir.exists():
-        typer.echo(f"❌ Project '{name}' exists")
+        typer.echo(f"Project '{name}' exists")
         raise typer.Exit(code=1)
     os.makedirs(project_dir / "apps", exist_ok=True)
     os.makedirs(project_dir / "project", exist_ok=True)
@@ -146,7 +146,7 @@ def startproject(name: str):
         "    cli()\n"
     )
     
-    typer.echo(f"✅ Project '{name}' created!")
+    typer.echo(f"Project '{name}' created!")
 
 # ----------------------------
 # STARTAPP
@@ -157,7 +157,7 @@ def startapp(name: str):
     apps_dir = project_path / "apps"
     app_dir = apps_dir / name
     if not (project_path / "project" / "settings.py").exists():
-        typer.echo("❌ Not in a Rango project")
+        typer.echo("Not in a Rango project")
         raise typer.Exit(code=1)
     os.makedirs(app_dir, exist_ok=True)
     (app_dir / "__init__.py").write_text("")
@@ -237,27 +237,46 @@ def startapp(name: str):
     _update_project_settings(project_path, name)
     _update_project_urls(project_path, name)
     
-    typer.echo(f"✅ App '{name}' created and configured!")
+    typer.echo(f"App '{name}' created and configured!")
 
 # ----------------------------
 # DB COMMANDS
 # ----------------------------
 @cli.command()
+def initdb():
+    """Initialize Aerich configuration and create initial database."""
+    typer.echo("Initializing Aerich configuration...")
+    subprocess.run(["aerich", "init", "-t", "project.settings.TORTOISE_ORM"], check=False)
+    typer.echo("Creating initial database...")
+    subprocess.run(["aerich", "init-db"], check=False)
+    typer.echo("Database initialized successfully!")
+
+@cli.command()
 def makemigrations(message: str = "auto"):
-    typer.echo("📦 Making migrations...")
+    """Create new migration files after model changes."""
+    typer.echo("Making migrations...")
     subprocess.run(["aerich", "migrate", "--name", message], check=False)
+    typer.echo("Migrations created successfully!")
 
 @cli.command()
 def migrate():
-    typer.echo("⚙️ Applying migrations...")
+    """Apply pending migrations to the database."""
+    typer.echo("Applying migrations...")
     subprocess.run(["aerich", "upgrade"], check=False)
+    typer.echo("Migrations applied successfully!")
+
+@cli.command()
+def migrate_status():
+    """Show migration status."""
+    typer.echo("Checking migration status...")
+    subprocess.run(["aerich", "status"], check=False)
 
 # ----------------------------
 # RUN SERVER
 # ----------------------------
 @cli.command()
 def runserver(host: str = "127.0.0.1", port: int = 8000):
-    typer.echo(f"🚀 Running server at http://{host}:{port}")
+    typer.echo(f"Running server at http://{host}:{port}")
     subprocess.run(["uvicorn", "project.asgi:app", "--host", host, "--port", str(port), "--reload"])
 
 def main():
